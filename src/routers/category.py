@@ -28,3 +28,14 @@ async def registrar_categoria(request: Request):
     image_url = data["image_url"]
     sql = f"INSERT INTO tcategory (categoryName, description, imageUrl) VALUES ('{category_name}', '{description}', '{image_url}') RETURNING id"
     return query_handler.execute_sql(sql, "Categoría registrada exitosamente")
+
+@router.put("/categorias/actualizar")
+async def actualizar_categoria(request: Request):
+    request_body = await request.body()
+    data = json.loads(request_body)
+    category_id = data["id"]
+    category_name = data["category_name"]
+    description = data["description"]
+    image_url = data["image_url"]
+    sql = f"UPDATE tcategory SET categoryName = '{category_name}', description = '{description}', imageUrl = '{image_url}' WHERE id = {category_id} RETURNING id"
+    return query_handler.execute_sql(sql, "Categoría actualizada exitosamente")
