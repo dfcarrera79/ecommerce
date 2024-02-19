@@ -6,12 +6,13 @@ authors = ["dfcarrera79 <44879886+dfcarrera79@users.noreply.github.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.10.10"
 uvicorn = "^0.27.0.post1"
 fastapi = "^0.109.2"
 python-dotenv = "^1.0.0"
 sqlalchemy = "^2.0.25"
 psycopg2-binary = "^2.9.9"
+exceptiongroup = "^1.2.0"
 
 [build-system]
 requires = ["poetry-core"]
