@@ -1,8 +1,10 @@
 import uvicorn
 from fastapi import FastAPI
 from src.routers import migracion
+from src.routers import recepcion
 # from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(
     title="API para migración de datos MongoDB a PostgreSQL",
@@ -15,8 +17,11 @@ app = FastAPI(
     }
 )
 
+
 # API endpoints
 app.include_router(migracion.router)
+app.include_router(recepcion.router)
+
 
 # Allow all origins in CORS configuration
 app.add_middleware(
@@ -27,8 +32,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# app.mount("/static", StaticFiles(directory="src/public/images"), name="static")
 
+# app.mount("/static", StaticFiles(directory="src/public/images"), name="static")
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
