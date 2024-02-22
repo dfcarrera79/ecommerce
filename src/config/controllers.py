@@ -14,3 +14,4 @@ class SessionHandler:
                 return {"error": "N", "mensaje": mensaje, "objetos": objetos}
         except Exception as error:
             return {"error": "S", "mensaje": str(error), "objetos": ""}
+        
