@@ -1,6 +1,8 @@
 ### Local files
 /tests/
 poetry.lock
+src/routers/emilia_apps.recepcionproductos.json
+
 
 ### Linux ###
 *~

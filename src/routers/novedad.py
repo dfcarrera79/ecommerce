@@ -1,64 +1,56 @@
 import json
 import fastapi
 from config import config
+from pymongo import MongoClient
 from sqlalchemy.orm import Session
 from utils.utils import serializer
 from sqlalchemy import create_engine, text
 from config.controllers import SessionHandler
 
 
-def clean_dict(d):
-    cleaned = {}
-    for key, value in d.items():
-        if isinstance(value, dict):
-            if '$oid' in value:
-                cleaned[key] = value['$oid']
-            elif '$date' in value:
-                cleaned[key] = value['$date']
-            else:
-                cleaned[key] = clean_dict(value)
-        elif isinstance(value, list):
-            cleaned[key] = [clean_dict(item) if isinstance(item, dict) else item for item in value]
-        else:
-            cleaned[key] = value
-    return cleaned
+client = MongoClient(config.MONGO_URI)
+db = client[config.MONGO_DB]
+novedad_collection = db[config.MONGO_NOVEDAD]
+recepcion_collection = db[config.MONGO_RECEPCION]
 
-
-with open('routers/emilia_apps.recepcionproductos.json', 'r', encoding='utf-8') as f:
-    recepciones = json.load(f)
-    # print('[RECEPCION]: ', recepciones[0])
-    recepciones_dict = [clean_dict(recepcion) for recepcion in recepciones]
-    print('[RECEPCION CLEAN]: ', recepciones_dict[0])
-    
-    
 
 engine = create_engine(config.db_uri)
 query_handler = SessionHandler(engine)
+
 
 # API Route Definitions
 router = fastapi.APIRouter()
 
 
-@router.post("/migracion/recepcion_productos")
-async def migracion_recepcion():  
+async def get_novedades():
+    novedades = novedad_collection.find()
+    novedades_json = []
+    for novedad in novedades:
+        novedades_json.append(json.loads(json.dumps(novedad, default=serializer)))
+    return novedades_json
+
+
+@router.post("/migracion/novedad_productos")
+async def migracion_novedad():  
+    novedades = novedad_collection.find()
+    
     version = "APROMED_v01"
     modelo = "APROMED"
     tipo_formulario = "NOVEDAD"
 
-    for recepcion in recepciones_dict:               
+    for novedad in novedades:
         # Eliminar el campo __v si existe
-        recepcion.pop('__v', None)
-        # formulario_arcsa = json.loads(json.dumps(recepcion, default=serializer))
-        formulario_arcsa = recepcion
-        secuencia = recepcion["secuencia"]
-        no_formulario = recepcion["formulario"]
+        novedad.pop('__v', None)
+        formulario_arcsa = json.loads(json.dumps(novedad, default=serializer))     
+        secuencia = novedad["secuencia"]
+        no_formulario = novedad["formulario"]
         
         # Convertir el objeto JSON a cadena de texto
         json_string = json.dumps(formulario_arcsa).replace("'", "''")  # Escapa las comillas simples
         
         
-        if "trn_codigo" in recepcion:
-            trn_codigo = recepcion["trn_codigo"]
+        if "trn_codigo" in novedad:
+            trn_codigo = novedad["trn_codigo"]
             sql = f"""
             INSERT INTO comun.tformularioarcsa (secuencia, no_formulario,  formulario_arcsa, version, modelo, tipo_formulario, trn_codigo)
             VALUES ({secuencia}, '{no_formulario}', '{json_string}', '{version}', '{modelo}', '{tipo_formulario}', {trn_codigo}) RETURNING id_formulario"""
@@ -72,28 +64,36 @@ async def migracion_recepcion():
             session.execute(text(sql)).fetchall()
             session.commit()
 
-    return "Migración de recepciones completada satisfactoriamente" 
+    return "Migración de novedades completada satisfactoriamente"  
 
 
+# async def get_recepciones():
+#     recepciones = recepcion_collection.find()
+#     recepciones_json = []
+#     for recepcion in recepciones:
+#         recepciones_json.append(json.loads(json.dumps(recepcion, default=serializer)))
+#     return recepciones_json
 
 
 # @router.post("/migracion/recepcion_productos")
 # async def migracion_recepcion():  
+#     recepciones = recepcion_collection.find()
+    
 #     version = "APROMED_v01"
 #     modelo = "APROMED"
-#     tipo_formulario = "RECEPCION"
+#     tipo_formulario = "NOVEDAD"
 
-#     for recepcion in recepciones:
+#     for recepcion in recepciones:               
 #         # Eliminar el campo __v si existe
 #         recepcion.pop('__v', None)
-#         formulario_arcsa = json.loads(json.dumps(recepcion))
-        
+#         formulario_arcsa = json.loads(json.dumps(recepcion, default=serializer))
 #         secuencia = recepcion["secuencia"]
 #         no_formulario = recepcion["formulario"]
         
 #         # Convertir el objeto JSON a cadena de texto
 #         json_string = json.dumps(formulario_arcsa).replace("'", "''")  # Escapa las comillas simples
-
+        
+        
 #         if "trn_codigo" in recepcion:
 #             trn_codigo = recepcion["trn_codigo"]
 #             sql = f"""
@@ -103,9 +103,10 @@ async def migracion_recepcion():
 #             sql = f"""
 #             INSERT INTO comun.tformularioarcsa (secuencia, no_formulario,  formulario_arcsa, version, modelo, tipo_formulario)
 #             VALUES ({secuencia}, '{no_formulario}', '{json_string}', '{version}', '{modelo}', '{tipo_formulario}') RETURNING id_formulario"""
+
         
 #         with Session(engine) as session:
 #             session.execute(text(sql)).fetchall()
 #             session.commit()
 
-#     return "Migración de recepciones completada satisfactoriamente"    
+#     return "Migración de recepciones completada satisfactoriamente"  
