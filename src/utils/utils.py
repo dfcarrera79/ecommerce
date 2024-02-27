@@ -5,6 +5,6 @@ def serializer(obj):
     if isinstance(obj, ObjectId):
         return str(obj)
     elif isinstance(obj, datetime):
-        return obj.isoformat()
+        return obj.date().isoformat()
     else:
         raise TypeError("Type %s not serializable" % type(obj))

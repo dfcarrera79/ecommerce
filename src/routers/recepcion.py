@@ -14,13 +14,21 @@ def clean_dict(d):
             if '$oid' in value:
                 cleaned[key] = value['$oid']
             elif '$date' in value:
-                cleaned[key] = value['$date']
+                cleaned[key] = str(value['$date']).split("T")[0]
             else:
                 cleaned[key] = clean_dict(value)
         elif isinstance(value, list):
             cleaned[key] = [clean_dict(item) if isinstance(item, dict) else item for item in value]
         else:
             cleaned[key] = value
+            
+    # Corregir formato de fecha para la clave 'auditoria'
+    if 'auditoria' in cleaned:
+        for item in cleaned['auditoria']:
+            if 'fecha' in item:
+                # Convertir a str y luego extraer la parte de la fecha
+                item['fecha'] = str(item['fecha']).split("T")[0]
+            
     return cleaned
 
 
@@ -28,7 +36,7 @@ with open('routers/emilia_apps.recepcionproductos.json', 'r', encoding='utf-8') 
     recepciones = json.load(f)
     # print('[RECEPCION]: ', recepciones[0])
     recepciones_dict = [clean_dict(recepcion) for recepcion in recepciones]
-    print('[RECEPCION CLEAN]: ', recepciones_dict[0])
+    # print('[RECEPCION CLEAN]: ', recepciones_dict[0])
     
     
 
@@ -43,7 +51,7 @@ router = fastapi.APIRouter()
 async def migracion_recepcion():  
     version = "APROMED_v01"
     modelo = "APROMED"
-    tipo_formulario = "NOVEDAD"
+    tipo_formulario = "RECEPCION"
 
     for recepcion in recepciones_dict:               
         # Eliminar el campo __v si existe
