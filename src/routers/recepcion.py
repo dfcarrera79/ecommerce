@@ -32,11 +32,108 @@ def clean_dict(d):
     return cleaned
 
 
+# def convertir_especificaciones(productos):
+    
+#     nuevo_formato = []
+
+#     for producto in productos:
+#         print('PRODUCTO: ', producto)
+#         if producto['especificaciones']:
+#             especificaciones = producto['especificaciones']
+#             agrupados = {}
+
+#             for especificacion in especificaciones:
+#                 titulo = especificacion['titulo']
+
+#                 if titulo == "":
+#                     titulo = "EMBALAJE"
+
+#                 titulo = titulo.upper()
+
+#                 if titulo not in agrupados:
+#                     agrupados[titulo] = []
+
+#                 agrupados[titulo].append({
+#                     "es": "ND",
+#                     "opciones": ["NO APLICA", "CUMPLE", "NO CUMPLE"],
+#                     "parametro": especificacion["parametro"],
+#                     "resultado": especificacion["resultado"],
+#                     "observaciones": especificacion["observaciones"]
+#                 })
+
+#             especificaciones_nuevas = []
+#             for titulo, parametros in agrupados.items():
+#                 especificaciones_nuevas.append({
+#                     "titulo": titulo,
+#                     "parametros": parametros
+#                 })
+
+#             nuevo_formato.append({
+#                 "especificaciones": especificaciones_nuevas
+#             })
+
+#             return nuevo_formato
+    
+#         else:
+#             return producto
+
+def convertir_especificaciones(productos):
+    nuevos_productos = []
+    for producto in productos:
+        especificaciones = producto.get('especificaciones', [])
+        
+        if not especificaciones:
+            producto["especificaciones"] = []
+            continue
+
+        agrupados = {}
+
+        for especificacion in especificaciones:
+            titulo = especificacion['titulo']
+
+            if titulo == "":
+                titulo = "Especificaciones Técnicas"
+
+            if titulo not in agrupados:
+                agrupados[titulo] = []
+                
+            if especificacion["resultado"] == "":
+                agrupados[titulo].append({
+                "es": "ND",
+                "opciones": [],
+                "parametro": especificacion["parametro"],
+                "resultado": especificacion["resultado"],
+                "observaciones": especificacion["observaciones"]
+            })     
+            
+            else: 
+                agrupados[titulo].append({
+                    "es": "ND",
+                    "opciones": ["NO APLICA", "CUMPLE", "NO CUMPLE"],
+                    "parametro": especificacion["parametro"],
+                    "resultado": especificacion["resultado"],
+                    "observaciones": especificacion["observaciones"]
+                })    
+
+        especificaciones_nuevas = []
+        for titulo, parametros in agrupados.items():
+            especificaciones_nuevas.append({
+                "titulo": titulo,
+                "parametros": parametros
+            })
+
+        producto["especificaciones"] = especificaciones_nuevas
+        nuevos_productos.append(producto)
+    return nuevos_productos
+
+
+
+
 with open('routers/emilia_apps.recepcionproductos.json', 'r', encoding='utf-8') as f:
     recepciones = json.load(f)
     # print('[RECEPCION]: ', recepciones[0])
     recepciones_dict = [clean_dict(recepcion) for recepcion in recepciones]
-    # print('[RECEPCION CLEAN]: ', recepciones_dict[0])
+    # print('[RECEPCION CLEAN]: ', recepciones_dict[10])
     
     
 
@@ -56,6 +153,12 @@ async def migracion_recepcion():
     for recepcion in recepciones_dict:               
         # Eliminar el campo __v si existe
         recepcion.pop('__v', None)
+                
+        productos = recepcion["productos"]
+        nuevos_productos = convertir_especificaciones(productos)
+        recepcion["productos"] = nuevos_productos
+        
+        
         # formulario_arcsa = json.loads(json.dumps(recepcion, default=serializer))
         formulario_arcsa = recepcion
         secuencia = recepcion["secuencia"]
@@ -63,7 +166,7 @@ async def migracion_recepcion():
         
         # Convertir el objeto JSON a cadena de texto
         json_string = json.dumps(formulario_arcsa).replace("'", "''")  # Escapa las comillas simples
-        
+            
         
         if "trn_codigo" in recepcion:
             trn_codigo = recepcion["trn_codigo"]
@@ -80,7 +183,7 @@ async def migracion_recepcion():
             session.execute(text(sql)).fetchall()
             session.commit()
 
-    return "Migración de recepciones completada satisfactoriamente" 
+    return "Migración de recepciones completada satisfactoriamente"
 
 
 
